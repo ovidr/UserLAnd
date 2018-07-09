@@ -7,6 +7,10 @@ import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Environment
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import android.util.Log
+import java.util.Date
 
 class DownloadUtility(val context: Context, val archType: String, distType: String) {
 
@@ -57,8 +61,9 @@ class DownloadUtility(val context: Context, val archType: String, distType: Stri
         return downloadManager.enqueue(request)
     }
 
-    private fun assetNeedsToUpdated(type: String): Boolean {
+    private fun assetNeedsToUpdated(type: String, endpoint: String): Boolean {
         val (subdirectory, filename) = type.split(":")
+        urlDateModified(endpoint)
         if (filename.contains("proot"))
             return true
         val asset = File("${context.filesDir.path}/$subdirectory/$filename")
@@ -69,8 +74,8 @@ class DownloadUtility(val context: Context, val archType: String, distType: Stri
     fun downloadRequirements(): List<Long> {
         return assets
                 .filter {
-                    (type, _) ->
-                    assetNeedsToUpdated(type)
+                    (type, endpoint) ->
+                    assetNeedsToUpdated(type, endpoint)
                 }
                 .map {
                     (type, endpoint) ->
@@ -99,6 +104,17 @@ class DownloadUtility(val context: Context, val archType: String, distType: Stri
         val downloadFile = File(downloadDirectory,type)
         if (downloadFile.exists())
             downloadFile.delete()
+    }
+
+    private fun urlDateModified(address: String): String {
+        val url = URL(address)
+        val httpCon = url.openConnection() as HttpURLConnection
+
+        val date = httpCon.getLastModified()
+        if (date == 0L)
+            Log.d("DownloadUtility","No last-modified information.")
+        else
+            Log.d("DownloadUtility","Last-Modified: " + Date(date))
     }
 
 }
